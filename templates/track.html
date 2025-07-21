@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Отслеживание заказа - Poizon Calculator{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">
+            <i class="fas fa-search me-3"></i>Отслеживание заказа
+        </h1>
+        <p class="hero-subtitle">
+            Узнайте текущий статус вашего заказа
+        </p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-transparent border-0 pt-4">
+                    <h4 class="text-center mb-0">
+                        <i class="fas fa-barcode me-2"></i>Введите номер заказа
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form id="trackForm">
+                        <div class="mb-3">
+                            <label for="orderNumber" class="form-label">Номер заказа:</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-hashtag"></i>
+                                </span>
+                                <input type="text" class="form-control" id="orderNumber" 
+                                       placeholder="PD-123" required>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Введите номер заказа, который вы получили при оформлении
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search me-2"></i>Проверить статус
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Индикатор загрузки -->
+                    <div class="loading text-center mt-4">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-2">Ищем информацию о заказе...</p>
+                    </div>
+                    
+                    <!-- Результат -->
+                    <div id="trackResult" class="mt-4" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Информация о статусах -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle me-2"></i>Возможные статусы заказа
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <span class="badge bg-secondary me-2">Создан</span>
+                                    Заказ оформлен, ожидает обработки
+                                </li>
+                                <li class="mb-2">
+                                    <span class="badge bg-info me-2">Оплачен</span>
+                                    Оплата получена, готовим к отправке
+                                </li>
+                                <li class="mb-2">
+                                    <span class="badge bg-warning me-2">В пути из Китая</span>
+                                    Товар отправлен из Китая
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <span class="badge bg-primary me-2">На складе в РФ</span>
+                                    Товар прибыл на склад в России
+                                </li>
+                                <li class="mb-2">
+                                    <span class="badge bg-success me-2">Отправлен в ПВЗ</span>
+                                    Отправлен в пункт выдачи
+                                </li>
+                                <li class="mb-2">
+                                    <span class="badge bg-success me-2">Готов к получению</span>
+                                    Можно забирать в пункте выдачи
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('trackForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const orderNumber = document.getElementById('orderNumber').value.trim();
+    const loadingDiv = document.querySelector('.loading');
+    const resultDiv = document.getElementById('trackResult');
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    // Показываем загрузку
+    loadingDiv.style.display = 'block';
+    resultDiv.style.display = 'none';
+    submitBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/check_order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ order_number: orderNumber })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const statusBadgeClass = getStatusBadgeClass(data.status);
+            const statusIcon = getStatusIcon(data.status);
+            
+            resultDiv.innerHTML = `
+                <div class="product-card">
+                    <div class="text-center mb-4">
+                        <h4 class="text-primary">
+                            <i class="fas fa-box me-2"></i>Заказ №${data.order_number}
+                        </h4>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-sm-6">
+                            <div class="text-muted">Telegram:</div>
+                            <div class="h6">${data.telegram}</div> <!-- Используем telegram -->
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted">Товар:</div>
+                            <div class="h6">${data.product_name}</div> <!-- Используем product_name -->
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mb-3">
+                        <div class="mb-2">
+                            <span class="badge ${statusBadgeClass} fs-6 px-3 py-2">
+                                <i class="${statusIcon} me-2"></i>${data.status}
+                            </span>
+                        </div>
+                        <small class="text-muted">
+                            Последнее обновление: ${formatDate(data.updated_at)}
+                        </small>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button class="btn btn-outline-primary" onclick="location.reload()">
+                            <i class="fas fa-sync-alt me-2"></i>Обновить статус
+                        </button>
+                    </div>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-warning" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Заказ не найден</strong><br>
+                    Проверьте правильность введенного номера заказа.
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Ошибка:</strong> Не удалось проверить статус заказа. Попробуйте позже.
+            </div>
+        `;
+        resultDiv.style.display = 'block';
+    } finally {
+        loadingDiv.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+});
+
+function getStatusBadgeClass(status) {
+    const statusClasses = {
+        'Создан': 'bg-secondary',  // Серый цвет
+        'Оплачен': 'bg-info',  // Голубой цвет
+        'В пути на склад в Китае': 'bg-warning',  // Желтый цвет
+        'Прибыл на склад в Китае': 'bg-warning',  // Желтый цвет
+        'Отправлен в РФ': 'bg-primary',  // Синий цвет
+        'Прибыл в РФ': 'bg-primary',  // Синий цвет
+        'Отправлен в ПВЗ': 'bg-success',  // Зеленый цвет
+        'Готов к получению': 'bg-success'  // Зеленый цвет
+    };
+    return statusClasses[status] || 'bg-secondary';
+}
+
+function getStatusIcon(status) {
+    const statusIcons = {
+        'Создан': 'fas fa-plus-circle',
+        'Оплачен': 'fas fa-credit-card',
+        'В пути из Китая': 'fas fa-plane',
+        'На складе в РФ': 'fas fa-warehouse',
+        'Отправлен в ПВЗ': 'fas fa-truck',
+        'Готов к получению': 'fas fa-check-circle'
+    };
+    return statusIcons[status] || 'fas fa-info-circle';
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+</script>
+{% endblock %}

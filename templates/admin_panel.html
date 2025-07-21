@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}Админ-панель{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">
+            <i class="fas fa-cogs me-3"></i>Админ-панель
+        </h1>
+        <p class="hero-subtitle">
+            Управляйте настройками и заказами
+        </p>
+    </div>
+</div>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-cogs me-2"></i>Админ-панель</h2>
+        <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-danger">
+            <i class="fas fa-sign-out-alt me-2"></i>Выйти
+        </a>
+    </div>
+    
+    {% if request.args.get('error') %}
+    <div class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ request.args.get('error') }}
+    </div>
+    {% endif %}
+    
+    <!-- Настройки -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-sliders-h me-2"></i>Настройки цен</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Настройка курса юаня -->
+                    <form method="POST" action="{{ url_for('update_settings') }}">
+                        <div class="mb-4">
+                            <label for="cny_rate" class="form-label">Курс юаня (₽):</label>
+                            <div class="input-group">
+                                <span class="input-group-text">¥1 =</span>
+                                <input type="number" step="0.01" class="form-control" id="cny_rate" 
+                                       name="cny_rate" value="{{ settings.cny_rate }}" required>
+                                <span class="input-group-text">₽</span>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="admin_percent" class="form-label">Процент администратора (%):</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" class="form-control" id="admin_percent"
+                                       name="admin_percent" value="{{ settings.admin_percent }}" min="5" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success mb-4">
+                            <i class="fas fa-save me-2"></i>Сохранить курс юаня и процент администратора
+                        </button>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Настройка стоимости доставки по категориям -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Категории доставки</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('update_delivery_categories') }}">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Название категории</th>
+                                                <th>Стоимость доставки, ₽</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for category in delivery_categories %}
+                                            <tr>
+                                                <td>
+                                                    <input type="text" class="form-control" name="category_name_{{ category[0] }}" 
+                                                        value="{{ category[1] }}" required>
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control" name="delivery_cost_{{ category[0] }}" 
+                                                        value="{{ category[2] }}" min="0" step="100" required>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-danger btn-sm delete-category-btn" 
+                                                           data-category-id="{{ category[0] }}" data-category-name="{{ category[1] }}">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                            <!-- Дополнительная строка для новой категории -->
+                                            <tr>
+                                                <td>
+                                                    <input type="text" class="form-control" name="category_name_new" 
+                                                        placeholder="Новая категория">
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control" name="delivery_cost_new" 
+                                                        placeholder="0" min="0" step="100">
+                                                </td>
+                                                <td><!-- Пусто для новой категории --></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Сохранить категории доставки
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Добавление заказа -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-plus-circle me-2"></i>Добавить заказ</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_order') }}">
+                        <div class="mb-3">
+                            <label for="order_number" class="form-label">Номер заказа:</label>
+                            <input type="text" class="form-control" id="order_number" 
+                                name="order_number" placeholder="PD-001" required>
+                        </div>
+    
+                        <div class="mb-3">
+                            <label for="product_name" class="form-label">Название товара:</label>
+                            <input type="text" class="form-control" id="product_name" 
+                                name="product_name" placeholder="Nike Dunk Low" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="telegram" class="form-label">Telegram:</label>
+                            <input type="text" class="form-control" id="telegram" 
+                                name="telegram" placeholder="@username">
+                        </div>
+    
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Статус:</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="Создан">Создан</option>
+                                <option value="Оплачен">Оплачен</option>
+                                <option value="В пути на склад в Китае">В пути на склад в Китае</option>
+                                <option value="Прибыл на склад в Китае">Прибыл на склад в Китае</option>
+                                <option value="Отправлен в РФ">Отправлен в РФ</option>
+                                <option value="Прибыл в РФ">Прибыл в РФ</option>
+                                <option value="Отправлен в ПВЗ">Отправлен в ПВЗ</option>
+                                <option value="Готов к получению">Готов к получению</option>
+                            </select>
+                        </div>
+    
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Добавить заказ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Список заказов -->
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-list me-2"></i>Все заказы ({{ orders|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>№ заказа</th>
+                            <th>Товар</th>
+                            <th>Цена (₽)</th>
+                            <th>Admin %</th>
+                            <th>Telegram</th>
+                            <th>Статус</th>
+                            <th>Создан</th>
+                            <th>Обновлен</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><strong>{{ order[0] }}</strong></td>
+                            <td>{{ order[2] }}</td>
+                            <td>{{ order[4] }} ₽</td>
+                            <td>{{ order[5] }}%</td>
+                            <td>{{ order[3] }}</td>
+                            <td>
+                                <span class="badge {{ order[6]|get_status_badge_class }}">{{ order[6] }}</span>
+                            </td>
+                            <td>{{ order[7]|format_datetime }}</td>
+                            <td>{{ order[8]|format_datetime }}</td>
+                            <td class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary edit-order-btn" 
+                                        data-order-id="{{ order[9] }}" 
+                                        data-current-status="{{ order[6] }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                        <button class="btn btn-sm btn-outline-danger delete-order-btn" 
+                                        data-order-id="{{ order[9] }}" 
+                                        data-order-number="{{ order[0] }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+<!-- Модальное окно для подтверждения удаления заказа -->
+<div class="modal fade" id="deleteOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение удаления заказа</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('delete_order') }}">
+                <div class="modal-body">
+                    <p>Вы действительно хотите удалить заказ <strong id="order-number-to-delete"></strong>?</p>
+                    <input type="hidden" id="order-id-to-delete" name="order_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Заказов пока нет</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования статуса -->
+<div class="modal fade" id="editOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить статус заказа</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('update_order') }}">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_order_id" name="order_id">
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">Новый статус:</label>
+                        <select class="form-control" id="edit_status" name="status" required>
+                            <option value="Создан">Создан</option>
+                            <option value="Оплачен">Оплачен</option>
+                            <option value="В пути на склад в Китае">В пути на склад в Китае</option>
+                            <option value="Прибыл на склад в Китае">Прибыл на склад в Китае</option>
+                            <option value="Отправлен в РФ">Отправлен в РФ</option>
+                            <option value="Прибыл в РФ">Прибыл в РФ</option>
+                            <option value="Отправлен в ПВЗ">Отправлен в ПВЗ</option>
+                            <option value="Готов к получению">Готов к получению</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Добавляем модальное окно для подтверждения удаления категории доставки -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение удаления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('delete_delivery_category') }}">
+                <div class="modal-body">
+                    <p>Вы действительно хотите удалить категорию доставки <strong id="category-name-to-delete"></strong>?</p>
+                    <input type="hidden" id="category-id-to-delete" name="category_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Обработчик клика для кнопок удаления заказа
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const orderNumber = this.getAttribute('data-order-number');
+            confirmDeleteOrder(orderId, orderNumber);
+        });
+    });
+});
+
+function confirmDeleteOrder(orderId, orderNumber) {
+    document.getElementById('order-id-to-delete').value = orderId;
+    document.getElementById('order-number-to-delete').textContent = orderNumber;
+    const modal = new bootstrap.Modal(document.getElementById('deleteOrderModal'));
+    modal.show();
+}
+// Обработчик клика для кнопок редактирования
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.edit-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const currentStatus = this.getAttribute('data-current-status');
+            editOrder(orderId, currentStatus);
+        });
+    });
+});
+
+function editOrder(orderId, currentStatus) {
+    document.getElementById('edit_order_id').value = orderId;
+    document.getElementById('edit_status').value = currentStatus;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editOrderModal'));
+    modal.show();
+}
+
+// Функция для получения класса badge по статусу
+function getStatusBadgeClass(status) {
+    const statusClasses = {
+        'Создан': 'bg-secondary',
+        'Оплачен': 'bg-info',
+        'В пути на склад в Китае': 'bg-warning',
+        'Прибыл на склад в Китае': 'bg-warning',
+        'Отправлен в РФ': 'bg-primary',
+        'Прибыл в РФ': 'bg-primary',
+        'Отправлен в ПВЗ': 'bg-success',
+        'Готов к получению': 'bg-success'
+    };
+    return statusClasses[status] || 'bg-secondary';
+}
+
+// Добавляем обработчик для кнопок удаления категорий
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-category-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const categoryId = this.getAttribute('data-category-id');
+            const categoryName = this.getAttribute('data-category-name');
+            confirmDeleteCategory(categoryId, categoryName);
+        });
+    });
+});
+
+function confirmDeleteCategory(categoryId, categoryName) {
+    document.getElementById('category-id-to-delete').value = categoryId;
+    document.getElementById('category-name-to-delete').textContent = categoryName;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
+    modal.show();
+}
+
+// Функция для форматирования даты из UTC в локальный формат
+document.addEventListener('DOMContentLoaded', function() {
+    // Форматирование дат в таблице
+    document.querySelectorAll('td').forEach(cell => {
+        const text = cell.textContent.trim();
+        // Проверяем, является ли содержимое ячейки датой в формате ISO или SQL
+        if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(text)) {
+            try {
+                // Преобразуем строку в дату, подготавливаем для Date
+                const dateStr = text.replace(' ', 'T');
+                // Создаем объект Date
+                let date = new Date(dateStr);
+                
+                // Проверяем, валидная ли дата
+                if (!isNaN(date.getTime())) {
+                    // Форматируем дату в российский формат
+                    const options = {
+                        year: 'numeric',
+                        month: 'numeric', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    };
+                    cell.textContent = date.toLocaleDateString('ru-RU', options);
+                }
+            } catch (e) {
+                console.log('Ошибка при форматировании даты:', e);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+
+
+

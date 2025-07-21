@@ -1,0 +1,10 @@
+flask==2.0.1
+requests==2.26.0
+beautifulsoup4==4.10.0
+requests-html==0.10.0
+flask-cors==3.0.10
+werkzeug==2.0.1
+urllib3==1.26.7
+playwright==1.32.0
+selenium==4.1.0
+requests-html==0.10.0
