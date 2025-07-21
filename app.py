@@ -26,8 +26,8 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Измените на случайный ключ
 
 # Настройки Telegram-бота
-TELEGRAM_BOT_TOKEN = '8110929140:AAHeoFeumGgYyfAizkSwPurfdCIiozqZwp0'
-ADMIN_CHAT_ID = '6827811945'
+TELEGRAM_BOT_TOKEN = ''
+ADMIN_CHAT_ID = ''
 
 # Функция для форматирования даты и времени
 @app.template_filter('format_datetime')
